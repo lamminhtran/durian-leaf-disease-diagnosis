@@ -217,6 +217,46 @@ function validateFile(file) {
   return null;
 }
 
+/**
+ * Quy mọi định dạng ảnh tải lên về một chuẩn chung (JPEG) ngay tại trình duyệt.
+ *
+ * Vì sao cần: người dùng có thể tải PNG, WebP, BMP… mỗi kiểu hiển thị và nén
+ * khác nhau. Đưa về cùng một chuẩn để khung ảnh gốc, bản đồ nhiệt và khung bao
+ * luôn nhất quán, và máy chủ luôn nhận đúng một kiểu dữ liệu.
+ *
+ * Giải mã bằng createImageBitmap (hỗ trợ rộng, giữ đúng pixel gốc như máy chủ
+ * đọc). Định dạng trình duyệt không giải mã được (ví dụ TIFF) thì giữ nguyên tệp
+ * gốc để máy chủ tự xử lý, không chặn người dùng.
+ */
+async function normalizeImage(file) {
+  if (typeof createImageBitmap !== "function") return file;
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return file;  // trình duyệt không giải mã được: để máy chủ lo
+  }
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    // JPEG không có kênh trong suốt; tô nền trắng để vùng trong suốt của PNG
+    // không bị đổ thành đen.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0);
+    const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.95));
+    if (!blob) return file;
+    const base = file.name.replace(/\.[^./\\]+$/, "") || "anh-la";
+    return new File([blob], `${base}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+  } catch {
+    return file;
+  } finally {
+    bitmap.close?.();
+  }
+}
+
 async function handleFile(file) {
   if (!file || state.busy) return;
   const problem = validateFile(file);
@@ -230,12 +270,15 @@ async function handleFile(file) {
   el.results.hidden = true;
   el.progress.hidden = false;
 
-  if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
-  state.objectUrl = URL.createObjectURL(file);
-
   try {
-    state.result = await postPredict(file);
-    state.lastFile = file;
+    // Quy về một định dạng chuẩn trước khi hiển thị và gửi lên máy chủ.
+    const image = await normalizeImage(file);
+
+    if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+    state.objectUrl = URL.createObjectURL(image);
+
+    state.result = await postPredict(image);
+    state.lastFile = image;
     renderResult(state.result);
   } catch (err) {
     el.intro.hidden = false;
