@@ -15,6 +15,14 @@ services:
     expose:
       - "8000"
     environment:
+      # Bản chạy công khai dùng mô hình CHƯNG CẤT, không phải giáo viên.
+      # Đo trong container 512MB: học trò 367MB sau khi nạp / 418MB dưới 8 request
+      # đồng thời; giáo viên 490MB / 504MB — chạy được nhưng sát trần, một đợt
+      # truy cập bất thường là container bị huỷ vì hết bộ nhớ.
+      # Đánh đổi: 96.74% thay vì 98.54%, bù lại nhanh gấp 4,5 lần.
+      BACKBONE_NAME: mobilenetv3_small_100
+      MODEL_PATH: models/mobilenetv3_small_kd_best.pth
+      METRICS_PREFIX: mobilenetv3_small_kd
       ENVIRONMENT: production
       LOG_FORMAT: json
       LOG_LEVEL: INFO
