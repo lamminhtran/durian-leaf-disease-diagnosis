@@ -1,0 +1,64 @@
+# Cấu hình triển khai Render (Blueprint).
+#
+# Gói free: 0.1 CPU, 512MB RAM, ngủ sau 15 phút không có lưu lượng, 750 giờ
+# chạy mỗi tháng cho cả workspace.
+#
+# Vì CPU rất thấp, bản demo chạy mô hình CHƯNG CẤT MobileNetV3-Small chứ không
+# phải CAFormer. Số đo trong container giới hạn 0.1 CPU / 512MB:
+#   MobileNetV3-Small : nạp 108s, chẩn đoán 4,7s, RAM 322MB
+#   CAFormer-S18      : chậm hơn ~4,5 lần và RAM sát trần 512MB
+services:
+  - type: web
+    name: durian-leaf-diagnosis
+    runtime: docker
+    plan: free
+    # Singapore là vùng gần Việt Nam nhất; KHÔNG đổi được sau khi tạo.
+    region: singapore
+    dockerfilePath: ./Dockerfile
+
+    # Dùng /healthz (liveness) chứ không phải /readyz: nếu trọng số lỗi thì
+    # /readyz trả 503 vĩnh viễn và Render sẽ khởi động lại vòng lặp vô ích,
+    # đốt hết quota 750 giờ. Giao diện tự báo lỗi khi mô hình chưa sẵn sàng.
+    healthCheckPath: /healthz
+
+    envVars:
+      # --- Mô hình: bản chưng cất, nhẹ và nhanh hơn ---
+      - key: BACKBONE_NAME
+        value: mobilenetv3_small_100
+      - key: MODEL_PATH
+        value: models/mobilenetv3_small_kd_best.pth
+      - key: METRICS_PREFIX
+        value: mobilenetv3_small_kd
+
+      # --- Môi trường ---
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_FORMAT
+        value: json
+      - key: DEVICE
+        value: cpu
+      # 0.1 CPU: nhiều luồng torch chỉ làm chúng tranh nhau, chậm hơn một luồng.
+      - key: TORCH_NUM_THREADS
+        value: "1"
+
+      # --- Sau một lớp proxy của Render ---
+      - key: TRUSTED_PROXY_COUNT
+        value: "1"
+
+      # --- Giới hạn tần suất: siết lại vì máy chỉ có 0.1 CPU ---
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_REQUESTS
+        value: "10"
+      - key: CHAT_RATE_LIMIT_REQUESTS
+        value: "6"
+
+      # --- Trợ lý AI (TUỲ CHỌN) ---
+      # Để trống thì khung trò chuyện ẩn hẳn, phần chẩn đoán vẫn chạy bình thường.
+      # CÂN NHẮC trước khi điền: đây là khoá cá nhân của bạn, ai vào demo cũng
+      # dùng được và bạn trả tiền. Nếu điền, nên tạo khoá riêng cho demo và đặt
+      # hạn mức chi tiêu trên OpenRouter.
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: google/gemini-2.5-flash

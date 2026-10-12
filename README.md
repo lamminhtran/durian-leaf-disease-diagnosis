@@ -275,6 +275,21 @@ Quên `METRICS_PREFIX` là lỗi âm thầm — dịch vụ vẫn chạy nhưng 
 liệu của mô hình kia. Ứng dụng tự kiểm tra chéo số tham số lúc khởi động và cảnh
 báo nếu lệch.
 
+## Bản demo công khai
+
+Triển khai trên **Render** (gói free) bằng [`render.yaml`](render.yaml). Vì máy
+chỉ có 0.1 CPU, bản demo dùng mô hình chưng cất:
+
+| | Đo trong container 0.1 CPU / 512MB |
+|---|---|
+| Nạp mô hình lúc khởi động | 108 s |
+| Mỗi lần chẩn đoán | 4,7 s |
+| RAM | 322 MB / 512 MB |
+
+Gói free ngủ sau 15 phút không có lưu lượng; một workflow GitHub Actions
+([`keep-warm.yml`](.github/workflows/keep-warm.yml)) ping mỗi 10 phút để tránh
+người truy cập đầu tiên phải chờ khởi động lại.
+
 ## Chạy bằng Docker
 
 ```bash

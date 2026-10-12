@@ -63,10 +63,16 @@ COPY --chown=app:app results/ ./results/
 
 USER app
 
+# Cổng lấy từ biến PORT nếu có. Các nền tảng như Render tiêm biến này và chờ
+# ứng dụng bind đúng cổng đó; ghim cứng một số sẽ làm deploy thất bại.
+ENV PORT=8000
 EXPOSE 8000
 
-# /readyz chỉ trả 200 khi mô hình đã nạp xong; start-period cho thời gian nạp.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:8000/readyz || exit 1
+# /readyz chỉ trả 200 khi mô hình đã nạp xong. start-period nới rộng vì trên
+# máy chủ CPU thấp (ví dụ 0.1 vCPU) việc nạp mô hình mất hơn 100 giây.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=3 \
+    CMD curl -fsS "http://127.0.0.1:${PORT}/readyz" || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Dạng shell để ${PORT} được khai triển; `exec` giữ uvicorn làm PID 1 để nhận
+# đúng tín hiệu dừng từ orchestrator.
+CMD exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT}" --workers 1
