@@ -21,10 +21,11 @@ __pycache__/
 # — thiếu nó thì container khởi động xong vẫn trả 503 mãi.
 #
 # Hugging Face xử lý tệp lớn bằng git-xet/LFS nên 90MB là bình thường.
-*.pth
 *.keras
 *.safetensors
-!results/results/caformer_s18.sail_in22k_ft_in1k_best.pth
+# Trọng số nằm ngoài models/ (bản nháp, checkpoint tạm) thì không đưa vào repo.
+*.pth
+!models/*.pth
 
 # Log
 logs/

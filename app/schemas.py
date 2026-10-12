@@ -73,6 +73,10 @@ class ModelMetricsOut(BaseModel):
     test_set_size: int
     per_class: dict[str, dict[str, float]]
     epochs: int | None = None
+    distilled_from: str | None = Field(
+        default=None,
+        description="Tên mô hình giáo viên, nếu đây là mô hình chưng cất tri thức",
+    )
 
 
 class ModelInfoOut(BaseModel):

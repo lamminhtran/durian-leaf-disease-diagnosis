@@ -10,12 +10,12 @@ một dịch vụ web cho nông dân tải ảnh lá lên và nhận chẩn đo�
 <td><b>Macro F1</b></td><td>0.9848</td>
 </tr>
 <tr>
-<td><b>Mô hình</b></td><td>CAFormer-S18 (23.5M tham số)</td>
+<td><b>Mô hình</b></td><td>CAFormer-S18, kèm bản chưng cất 2.05M</td>
 <td><b>Thời gian suy luận</b></td><td>~220 ms/ảnh trên CPU</td>
 </tr>
 <tr>
 <td><b>Giải thích</b></td><td>Grad-CAM + khoanh vùng WSOL</td>
-<td><b>Kiểm thử</b></td><td>106 test tự động</td>
+<td><b>Kiểm thử</b></td><td>113 test tự động</td>
 </tr>
 </table>
 
@@ -113,6 +113,54 @@ Không dừng ở nhãn dự đoán. Mô hình phải cho thấy **nó nhìn và
 
 Ứng dụng web dựng lại đúng hai kỹ thuật này — xem phần dưới.
 
+## Chưng cất tri thức: làm mô hình nhẹ đi 11 lần
+
+CAFormer-S18 chính xác nhất nhưng 23,5 triệu tham số và ~220 ms mỗi ảnh trên CPU
+— quá nặng cho máy yếu hoặc hosting rẻ. Giải pháp: **Progressive Knowledge
+Distillation**, dùng CAFormer làm *giáo viên* dạy lại cho một mô hình *học trò*
+nhỏ hơn nhiều.
+
+Điểm khác biệt so với KD thông thường: trọng số giữa "học từ nhãn thật" và "học
+từ giáo viên" **thay đổi dần qua 3 pha** thay vì cố định suốt quá trình.
+
+| Pha | Epoch | T | α | Ý nghĩa |
+|---|---|---|---|---|
+| 1 — Khởi động | 1–5 | 1.0 | 0.99 | Gần như chỉ học nhãn thật, cho mô hình ổn định trước |
+| 2 — Chuyển tiếp | 6–20 | 2.0 | 0.60 | Bắt đầu lấy tri thức từ giáo viên |
+| 3 — Chưng cất đầy đủ | 21–30 | 3.0 | 0.40 | Nhiệt độ cao làm lộ *dark knowledge* — thứ tự các lớp mà giáo viên cho là gần giống nhau |
+
+![Động lực chưng cất qua 3 pha](docs/images/kd-dynamics.png)
+
+Biểu đồ trên cho thấy rõ cơ chế: pha 1 soft loss bằng 0 (chưa dùng giáo viên),
+sang pha 2 mới bật lên, rồi α giảm dần trong khi T tăng — học trò ngày càng dựa
+nhiều vào giáo viên thay vì nhãn cứng.
+
+### Kết quả
+
+![Đánh đổi độ chính xác và kích thước](docs/images/kd-tradeoff.png)
+
+| Mô hình | Tham số | Độ chính xác | Macro F1 | Thời gian train |
+|---|---|---|---|---|
+| CAFormer-S18 *(giáo viên)* | 23.50M | 98.54% | 0.9848 | 70,4 phút |
+| **MobileNetV3-Small** *(học trò)* | **2.05M** | **96.74%** | 0.9658 | 10,4 phút |
+| EfficientNet-B0 *(học trò)* | 4.67M | 95.84% | 0.9568 | 16,5 phút |
+
+Đáng chú ý: MobileNetV3-Small **nhỏ hơn gấp đôi EfficientNet-B0 nhưng chính xác
+hơn** — kiến trúc nhỏ hơn không đồng nghĩa với kém hơn khi được chưng cất tốt.
+
+Đo lại trên CPU trong ứng dụng web này:
+
+| | CAFormer-S18 | MobileNetV3-Small | |
+|---|---|---|---|
+| Tham số | 23.50M | 2.05M | nhẹ hơn **11,5×** |
+| Tệp trọng số | 90 MB | 8 MB | |
+| Thời gian/ảnh (CPU) | 219 ms | **49 ms** | nhanh hơn **4,5×** |
+| Độ chính xác | 98.54% | 96.74% | đánh đổi **1,8 điểm %** |
+
+**Cả hai mô hình đều chạy được trong ứng dụng web**, đổi bằng ba dòng trong
+`.env` — xem `.env.example`. Mô hình học trò là lựa chọn hợp lý khi triển khai
+trên máy chủ rẻ tiền hoặc thiết bị biên.
+
 ---
 
 # Phần 2 — Ứng dụng web
@@ -162,7 +210,7 @@ lời nông dân hiểu được và trả lời câu hỏi tiếp theo. Chữ h
 | Trợ lý AI | OpenRouter (API tương thích OpenAI), truyền theo luồng SSE |
 | Frontend | HTML/CSS/JS thuần, không framework, không CDN |
 | Triển khai | Docker, docker-compose, nginx + TLS |
-| Kiểm thử | pytest (106 test), ruff |
+| Kiểm thử | pytest (113 test), ruff |
 
 ---
 
@@ -273,7 +321,7 @@ Trợ lý AI là **tuỳ chọn** — không có `OPENROUTER_API_KEY` thì nút 
 phần chẩn đoán vẫn chạy bình thường.
 
 ```bash
-make test      # 106 test
+make test      # 113 test
 make lint
 make eval DATA=/đường/dẫn/tới/dataset/test    # đánh giá lại trên tập test
 ```
@@ -283,15 +331,15 @@ make eval DATA=/đường/dẫn/tới/dataset/test    # đánh giá lại trên 
 # Cấu trúc dự án
 
 ```
-├── models/          # Trọng số CAFormer-S18 đang phục vụ
-├── results/         # Số liệu đánh giá đã lưu của cả 5 mô hình
+├── models/          # Trọng số: CAFormer-S18 (giáo viên) và MobileNetV3-Small (học trò)
+├── results/         # Số liệu đánh giá đã lưu của mọi mô hình đã huấn luyện
 ├── app/
 │   ├── ml/          # Kiến trúc, suy luận, Grad-CAM, WSOL, kho tri thức bệnh
 │   ├── genai/       # Trợ lý AI: client OpenRouter + prompt neo dữ liệu
 │   ├── routes/      # health, predict, chat
 │   └── main.py      # FastAPI, lifespan nạp mô hình, middleware
 ├── web/             # Giao diện: HTML/CSS/JS thuần
-├── tests/           # 106 test
+├── tests/           # 113 test
 ├── scripts/         # evaluate.py, dev.sh, serve.sh
 ├── deploy/          # nginx.conf, docker-compose.prod.yml
 └── docs/TECHNICAL.md    # Tài liệu kỹ thuật và vận hành chi tiết

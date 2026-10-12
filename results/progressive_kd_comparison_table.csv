@@ -1,0 +1,4 @@
+Student,Strategy,Total Params (M),Test Accuracy,Macro F1,Inference (ms),Train Time (min),Best Val Acc
+CAFormer-S18 (Teacher),Original training,23.5,98.54%,0.9848,11.307 ± 1.384,70.38,99.55%
+MobileNetV3-Small,Progressive KD,2.05,96.74%,0.9658,5.679 ± 0.352,10.4,97.29%
+EfficientNet-B0,Progressive KD,4.67,95.84%,0.9568,8.793 ± 0.382,16.5,97.97%

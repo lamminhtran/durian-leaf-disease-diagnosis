@@ -36,6 +36,20 @@ LOW_CONFIDENCE_THRESHOLD = 0.60
 # Kích thước ảnh giải thích trả về (phóng to từ 224 cho dễ xem).
 OVERLAY_RENDER_SIZE = 448
 
+# Lớp đích Grad-CAM cho từng backbone, lấy đúng theo notebook huấn luyện.
+#
+# Vì sao phải ghim thay vì tự dò: hai lớp khác nhau trong cùng một tầng có thể
+# cho bản đồ nhiệt rất giống nhau nhưng KHUNG BAO lệch hẳn. Đã đo:
+#   - CAFormer : stages[-1] so với stages[-1].blocks[-1].norm2
+#                tương quan heatmap 0.98 nhưng IoU khung bao chỉ 0.79
+#   - MobileNet: blocks[-1] so với blocks[5][0].conv
+#                tương quan 0.95 nhưng IoU 0.74, có 13/40 ảnh dưới 0.5
+# Không ghim thì ảnh trên web lệch khỏi hình trong báo cáo.
+NOTEBOOK_TARGET_LAYERS: dict[str, str] = {
+    "caformer_s18.sail_in22k_ft_in1k": "stages.3.blocks.-1.norm2",
+    "mobilenetv3_small_100": "blocks.5.0.conv",
+}
+
 
 class InvalidImageError(ValueError):
     """Dữ liệu tải lên không phải ảnh đọc được, hoặc vượt giới hạn cho phép."""
@@ -136,20 +150,23 @@ class DurianPredictor:
 
         Thứ tự ưu tiên:
           1. Đường dẫn do cấu hình chỉ định (GRADCAM_TARGET_LAYER).
-          2. `stages[-1].blocks[-1].norm2` — ĐÂY là lớp notebook huấn luyện dùng.
-             Bám theo nó để khung bao WSOL trên web trùng với hình trong báo cáo;
-             hook ở đầu ra cả stage cho bản đồ nhiệt rất giống (tương quan ~0.98)
-             nhưng khung bao lệch đáng kể (IoU trung vị chỉ ~0.79).
-          3. `stages[-1]` cho các backbone phân tầng khác.
+          2. NOTEBOOK_TARGET_LAYERS — lớp đúng theo notebook cho backbone đã biết.
+          3. `stages[-1].blocks[-1].norm2`, rồi `stages[-1]`, cho backbone phân tầng.
           4. `blocks[-1]` cho ViT/DeiT (không có 'stages').
+        Ba bước sau chỉ là dự phòng cho backbone chưa có trong bảng; với mô hình
+        đang phục vụ thì luôn rơi vào bước 1 hoặc 2.
         """
         backbone = self._model.backbone
 
-        if self._target_layer_path:
+        path = self._target_layer_path or NOTEBOOK_TARGET_LAYERS.get(self.backbone_name)
+        if path:
             module = backbone
-            for part in self._target_layer_path.split("."):
-                module = module[int(part)] if part.isdigit() else getattr(module, part)
-            return module, f"backbone.{self._target_layer_path}"
+            for part in path.split("."):
+                # Chấp nhận cả chỉ số âm ("-1") để viết được "blocks.-1".
+                is_index = part.lstrip("-").isdigit()
+                module = module[int(part)] if is_index else getattr(module, part)
+            source = "cấu hình" if self._target_layer_path else "notebook"
+            return module, f"backbone.{path} ({source})"
 
         stages = getattr(backbone, "stages", None)
         if stages is not None and len(stages) > 0:

@@ -133,8 +133,66 @@ def test_wsol_box_is_produced_on_real_images(predictor):
     assert found > 0, "không khoanh được vùng nào trên ảnh lá thật"
 
 
-def test_gradcam_target_layer_matches_training_notebook(predictor):
-    """Lớp đích phải là lớp notebook dùng, nếu không khung bao sẽ lệch với báo cáo."""
-    layer, name = predictor._resolve_target_layer()
-    assert name == "backbone.stages[-1].blocks[-1].norm2"
-    assert layer is predictor._model.backbone.stages[-1].blocks[-1].norm2
+
+
+# --- Mô hình chưng cất tri thức (student) ---
+
+STUDENT_WEIGHTS = Path("models/mobilenetv3_small_kd_best.pth")
+
+
+@pytest.fixture(scope="module")
+def student():
+    from app.ml.predictor import DurianPredictor
+
+    if not STUDENT_WEIGHTS.is_file():
+        pytest.skip(f"không có trọng số student: {STUDENT_WEIGHTS}")
+    return DurianPredictor(
+        backbone_name="mobilenetv3_small_100",
+        weights_path=STUDENT_WEIGHTS,
+        device_preference="cpu",
+        enable_gradcam=True,
+    )
+
+
+def test_student_weights_load_strictly(student):
+    assert student.gradcam_available
+
+
+def test_student_classifies_held_out_samples(student):
+    """Student đạt 96.74% toàn tập, nên trên mẫu nhỏ cho phép sai tối đa 1."""
+    wrong = []
+    for class_name in CLASS_NAMES:
+        folder = DATASET_TEST_DIR / class_name
+        if not folder.is_dir():
+            pytest.skip("không có bộ dữ liệu test trên máy này")
+        for path in sorted(p for p in folder.iterdir() if p.suffix.lower() == ".jpg")[:3]:
+            result = student.predict(student.decode_image(path.read_bytes()), want_gradcam=False)
+            if result.predicted_class != class_name:
+                wrong.append(f"{path.name}: {result.predicted_class} != {class_name}")
+    assert len(wrong) <= 1, f"sai quá nhiều: {wrong}"
+
+
+def test_pinned_gradcam_layers_match_the_training_notebook(predictor, student):
+    """Khoá cứng lớp đích Grad-CAM cho từng backbone.
+
+    Để bộ tự dò chọn thay sẽ cho bản đồ nhiệt trông tương tự nhưng KHUNG BAO
+    lệch hẳn — đã đo: CAFormer IoU 0.79, MobileNet IoU 0.74 với 13/40 ảnh dưới
+    0.5. Khi đó hình trên web không còn trùng với hình trong báo cáo.
+    """
+    _, teacher_name = predictor._resolve_target_layer()
+    assert teacher_name == "backbone.stages.3.blocks.-1.norm2 (notebook)"
+
+    layer, student_name = student._resolve_target_layer()
+    assert student_name == "backbone.blocks.5.0.conv (notebook)"
+    assert layer is student._model.backbone.blocks[5][0].conv
+
+
+def test_student_metrics_report_its_teacher():
+    from app.ml.metrics import load_metrics
+
+    m = load_metrics(Path("results"), "mobilenetv3_small_100", "mobilenetv3_small_kd")
+    if m is None:
+        pytest.skip("không có tệp số liệu của student")
+    assert m["distilled_from"] == "caformer_s18.sail_in22k_ft_in1k"
+    assert abs(m["test_accuracy"] - 0.9674157) < 1e-6
+    assert m["total_params_m"] == 2.05
