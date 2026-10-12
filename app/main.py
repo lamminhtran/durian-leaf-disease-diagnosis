@@ -151,6 +151,24 @@ async def lifespan(app: FastAPI):
         Path(settings.results_dir), settings.backbone_name, settings.metrics_prefix
     )
 
+    # Cảnh báo khi METRICS_PREFIX trỏ nhầm sang mô hình khác.
+    #
+    # Đây là lỗi cấu hình âm thầm nguy hiểm: đổi BACKBONE_NAME và MODEL_PATH mà
+    # quên METRICS_PREFIX thì dịch vụ vẫn chạy ngon lành, chỉ có điều giao diện
+    # khoe số liệu của mô hình KHÁC. So số tham số là cách phát hiện rẻ nhất.
+    if state.metrics and state.predictor is not None:
+        actual_m = sum(p.numel() for p in state.predictor._model.parameters()) / 1e6
+        claimed_m = state.metrics.get("total_params_m", 0.0)
+        if claimed_m and abs(actual_m - claimed_m) > 0.5:
+            logger.warning(
+                "METRICS_PREFIX có vẻ trỏ nhầm mô hình: số liệu đã lưu ghi "
+                "%.2fM tham số nhưng mô hình đang nạp có %.2fM. "
+                "Kiểm tra lại BACKBONE_NAME / MODEL_PATH / METRICS_PREFIX trong .env.",
+                claimed_m, actual_m,
+                extra={"metrics_prefix": settings.metrics_prefix,
+                       "backbone": settings.backbone_name},
+            )
+
     app.state.app_state = state
     try:
         yield
