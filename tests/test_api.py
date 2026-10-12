@@ -255,3 +255,31 @@ def test_unfingerprinted_assets_must_revalidate(client):
     r304 = client.get("/static/js/i18n.js", headers={"If-None-Match": r.headers["etag"]})
     assert r304.status_code == 304
     assert r304.headers["Cache-Control"] == "no-cache"
+
+
+def test_frontend_does_not_hardcode_a_model_name():
+    """Giao diện phải lấy tên mô hình từ API, không ghim cứng.
+
+    Mô hình đổi được qua biến môi trường. Ghim cứng tên trong JS từng khiến
+    trang khoe "CAFormer-S18" trong khi máy chủ đang chạy MobileNetV3 — sai mà
+    không một lỗi nào bật lên. Test này chặn kiểu hồi quy đó.
+    """
+    import re
+    from pathlib import Path
+
+    js = Path("web/static/js/app.js").read_text(encoding="utf-8")
+    # Bỏ comment và bảng ánh xạ tên hiển thị trước khi dò.
+    body = re.sub(r"//.*", "", js)
+    body = re.sub(r"const MODEL_DISPLAY_NAMES = \{.*?\};", "", body, flags=re.S)
+
+    for name in ("CAFormer", "MobileNetV3", "caformer_s18", "mobilenetv3_small"):
+        assert name not in body, f"tên mô hình {name!r} bị ghim cứng trong app.js"
+
+    # Và phải thực sự đọc tên từ phản hồi API.
+    assert "r.model_name" in js
+
+
+def test_predict_reports_the_configured_backbone(client):
+    """`model_name` trong phản hồi phải khớp cấu hình — đây là nguồn giao diện dùng."""
+    client.app_state.settings.backbone_name = "mobilenetv3_small_100"
+    assert post_image(client).json()["model_name"] == "mobilenetv3_small_100"

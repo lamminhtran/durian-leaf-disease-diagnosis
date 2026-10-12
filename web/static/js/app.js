@@ -15,6 +15,19 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_TYPES = new Set([
   "image/jpeg", "image/jpg", "image/png", "image/webp", "image/bmp", "image/tiff",
 ]);
+// Tên timm khó đọc với người dùng cuối; ánh xạ sang tên quen thuộc.
+// Backbone chưa có trong bảng thì hiện nguyên tên timm, vẫn đúng hơn là ghim cứng.
+const MODEL_DISPLAY_NAMES = {
+  "caformer_s18.sail_in22k_ft_in1k": "CAFormer-S18",
+  "mobilenetv3_small_100": "MobileNetV3-Small",
+  "maxvit_tiny_tf_224": "MaxViT-Tiny",
+  "deit_small_patch16_224": "DeiT-Small",
+  "swin_tiny_patch4_window7_224": "Swin-Tiny",
+  "vit_small_patch16_224": "ViT-Small",
+};
+
+const modelLabel = (name) => MODEL_DISPLAY_NAMES[name] || name || "—";
+
 const STORAGE_LANG = "dld.lang";
 const STORAGE_THEME = "dld.theme";
 
@@ -333,10 +346,17 @@ function renderResult(r) {
     return row;
   }));
 
-  // Thông tin kỹ thuật
+  // Thông tin kỹ thuật. Tên mô hình lấy từ phản hồi API, KHÔNG ghim cứng —
+  // mô hình đổi được qua biến môi trường nên ghim cứng sẽ hiện sai mà không ai
+  // biết (đã xảy ra: giao diện khoe CAFormer trong khi máy chủ chạy MobileNet).
+  const distilled = state.modelInfo?.metrics?.distilled_from;
+  const modelText = distilled
+    ? `${modelLabel(r.model_name)} ${s.techDistilled} ${modelLabel(distilled)}`
+    : modelLabel(r.model_name);
+
   const rows = [
     [s.techPathogen, r.info.pathogen ?? "—"],
-    [s.techModel, "CAFormer-S18"],
+    [s.techModel, modelText],
     [s.techAccuracy, state.modelInfo?.metrics
       ? fmtPercent(state.modelInfo.metrics.test_accuracy, 2) : "—"],
     [s.techTime, `${Math.round(r.inference_ms)} ms`],

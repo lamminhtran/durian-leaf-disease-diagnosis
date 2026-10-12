@@ -35,6 +35,7 @@ export const STRINGS = {
     techTitle: "Thông tin kỹ thuật",
 
     techModel: "Mô hình",
+    techDistilled: "chưng cất từ",
     techAccuracy: "Độ chính xác",
     techTime: "Thời gian xử lý",
     techPathogen: "Tác nhân",
@@ -101,6 +102,7 @@ export const STRINGS = {
     techTitle: "Technical details",
 
     techModel: "Model",
+    techDistilled: "distilled from",
     techAccuracy: "Accuracy",
     techTime: "Processing time",
     techPathogen: "Cause",

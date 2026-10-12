@@ -16,7 +16,7 @@ nó bằng Grad-CAM, chưng cất xuống một mô hình nhẹ hơn 11 lần đ
 </tr>
 <tr>
 <td><b>Ứng dụng</b></td><td>FastAPI + trợ lý AI</td>
-<td><b>Kiểm thử</b></td><td>113 test tự động</td>
+<td><b>Kiểm thử</b></td><td> test tự động</td>
 </tr>
 </table>
 
@@ -241,7 +241,7 @@ hiểu được và trả lời câu hỏi tiếp theo. Chữ hiện dần theo 
 | Trợ lý AI | OpenRouter (API tương thích OpenAI), truyền theo luồng SSE |
 | Frontend | HTML/CSS/JS thuần, font Be Vietnam Pro tự host |
 | Triển khai | Docker, docker-compose, nginx + TLS |
-| Kiểm thử | pytest (113 test), ruff |
+| Kiểm thử | pytest ( test), ruff |
 
 ---
 
@@ -435,7 +435,7 @@ Trợ lý AI là **tuỳ chọn** — không có `OPENROUTER_API_KEY` thì nút 
 phần chẩn đoán vẫn chạy bình thường. Lấy khoá tại <https://openrouter.ai/keys>.
 
 ```bash
-make test      # 113 test
+make test      #  test
 make lint
 make eval DATA=/đường/dẫn/tới/dataset/test    # đánh giá lại trên tập test
 ```
@@ -453,7 +453,7 @@ make eval DATA=/đường/dẫn/tới/dataset/test    # đánh giá lại trên 
 │   ├── routes/      # health, predict, chat
 │   └── main.py      # FastAPI, lifespan nạp mô hình, middleware
 ├── web/             # Giao diện: HTML/CSS/JS thuần
-├── tests/           # 113 test
+├── tests/           #  test
 ├── scripts/         # evaluate.py, dev.sh, serve.sh
 ├── deploy/          # nginx.conf, docker-compose.prod.yml
 └── docs/TECHNICAL.md    # Tài liệu kỹ thuật và vận hành chi tiết
