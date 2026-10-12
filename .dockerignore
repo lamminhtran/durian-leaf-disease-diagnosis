@@ -1,0 +1,25 @@
+# Chỉ chép những gì image thật sự cần — xem phần COPY trong Dockerfile.
+.git
+.gitignore
+.venv
+venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.DS_Store
+**/.DS_Store
+
+# results/ giờ chỉ còn CSV/JSON số liệu, nhẹ — chép cả thư mục.
+
+tests/
+pytest.ini
+requirements-dev.txt
+.env
+*.md
+!README.md
+deploy/
+scripts/
+samples/
+mota.tex

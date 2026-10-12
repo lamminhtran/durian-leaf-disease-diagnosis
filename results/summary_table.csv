@@ -1,0 +1,6 @@
+Model,Total Params (M),Trainable (M),Test Accuracy,Macro F1,Inference (ms),Train Time (min)
+vit_small_patch16_224,21.87,21.87,96.74%,0.9664,5.73 ± 1.096,18.5
+swin_tiny_patch4_window7_224,27.92,27.92,97.75%,0.9762,10.877 ± 0.262,23.9
+caformer_s18.sail_in22k_ft_in1k,23.5,23.5,98.54%,0.9848,10.084 ± 0.257,70.4
+maxvit_tiny_tf_224,30.67,30.67,98.43%,0.9836,25.267 ± 0.506,39.8
+deit_small_patch16_224,21.87,21.87,98.09%,0.9802,5.67 ± 0.368,18.8

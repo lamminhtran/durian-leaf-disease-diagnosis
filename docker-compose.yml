@@ -1,0 +1,24 @@
+# Chạy local: chỉ dịch vụ API + web, không có reverse proxy.
+# Bản dùng cho máy chủ công khai nằm ở deploy/docker-compose.prod.yml.
+services:
+  api:
+    build: .
+    image: durian-leaf-diagnosis:latest
+    container_name: durian-api
+    restart: unless-stopped
+    ports:
+      # Đổi cổng mà không cần sửa tệp:  HOST_PORT=8081 docker compose up
+      - "127.0.0.1:${HOST_PORT:-8000}:8000"
+    environment:
+      ENVIRONMENT: development
+      LOG_FORMAT: console
+      LOG_LEVEL: INFO
+      DEVICE: cpu
+      CORS_ALLOW_ORIGINS: "*"
+      RATE_LIMIT_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/readyz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3

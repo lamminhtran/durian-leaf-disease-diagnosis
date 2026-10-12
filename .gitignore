@@ -1,0 +1,31 @@
+# Môi trường
+.venv/
+venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Hệ điều hành / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Trọng số mô hình.
+#
+# Mặc định loại trừ vì quá nặng cho git thường, NHƯNG trọng số đang phục vụ thì
+# PHẢI đi theo repo khi deploy (Hugging Face Space, Cloud Run build từ nguồn...)
+# — thiếu nó thì container khởi động xong vẫn trả 503 mãi.
+#
+# Hugging Face xử lý tệp lớn bằng git-xet/LFS nên 90MB là bình thường.
+*.pth
+*.keras
+*.safetensors
+!results/results/caformer_s18.sail_in22k_ft_in1k_best.pth
+
+# Log
+logs/
+*.log

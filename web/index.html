@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chẩn đoán bệnh lá sầu riêng</title>
+<meta name="description" content="Tải ảnh lá sầu riêng lên để nhận chẩn đoán bệnh và hướng xử lý.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/static/img/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/static/img/favicon-64.png" sizes="64x64" type="image/png">
+<link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+<link rel="preload" as="font" type="font/woff2" href="/static/fonts/bvp-vietnamese-800.woff2" crossorigin>
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="shell masthead__inner">
+    <a class="brand" href="/">
+      <img class="brand__mark" src="/static/img/logo-256.png" alt="" width="38" height="38">
+      <span class="brand__title" id="brandTitle">Chẩn đoán bệnh lá sầu riêng</span>
+    </a>
+    <span class="masthead__spacer"></span>
+    <div class="toggle" role="group" aria-label="Language / Ngôn ngữ">
+      <button type="button" id="langVi" aria-pressed="true">VI</button>
+      <span class="toggle__sep" aria-hidden="true">/</span>
+      <button type="button" id="langEn" aria-pressed="false">EN</button>
+    </div>
+    <button type="button" class="icon-button" id="themeToggle" aria-label="Đổi chế độ sáng/tối"></button>
+  </div>
+</header>
+
+<main class="shell">
+
+  <section id="stage">
+    <div class="intro" id="intro">
+      <h1 id="introTitle">Lá sầu riêng của bạn bị bệnh gì?</h1>
+      <p id="introBody"></p>
+    </div>
+
+    <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dropMeta">
+      <span class="dropzone__icon" id="dropIcon" aria-hidden="true"></span>
+      <span class="dropzone__title" id="dropTitle">Chọn ảnh lá</span>
+      <span class="dropzone__hint" id="dropHint">hoặc kéo thả ảnh vào đây</span>
+      <span class="dropzone__meta" id="dropMeta">JPEG · PNG · tối đa 10 MB</span>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp,image/tiff">
+    </div>
+
+    <div id="notice" hidden></div>
+
+    <div class="progress" id="progress" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="progressTitle">Đang phân tích…</span>
+    </div>
+  </section>
+
+  <section class="results" id="results" aria-live="polite" hidden>
+
+    <!-- Ba khung ảnh nằm ngang, đúng thứ tự như hình trong báo cáo -->
+    <div class="plates" id="plates">
+      <figure class="plate">
+        <div class="plate__frame"><img id="imgOriginal" alt=""></div>
+        <figcaption><span class="plate__num">1</span><span id="capOriginal">Ảnh gốc</span></figcaption>
+      </figure>
+
+      <figure class="plate" id="plateHeatmap">
+        <div class="plate__frame"><img id="imgHeatmap" alt=""></div>
+        <figcaption><span class="plate__num">2</span><span id="capHeatmap">Bản đồ nhiệt</span></figcaption>
+      </figure>
+
+      <figure class="plate" id="plateBox">
+        <div class="plate__frame">
+          <img id="imgBoxed" alt="">
+          <div class="bbox" id="bboxOverlay" hidden><span class="bbox__label" id="bboxLabel"></span></div>
+        </div>
+        <figcaption><span class="plate__num">3</span><span id="capBox">Khoanh vùng</span></figcaption>
+      </figure>
+    </div>
+
+    <!-- Chẩn đoán -->
+    <div class="verdict" id="verdict">
+      <div class="rule"><span id="verdictEyebrow">Chẩn đoán</span></div>
+
+      <div class="verdict__head">
+        <div>
+          <h2 class="verdict__name" id="verdictName"></h2>
+          <p class="verdict__pathogen" id="verdictPathogen"></p>
+        </div>
+        <span class="badge" id="severityBadge" data-severity="none"></span>
+      </div>
+
+      <div class="verdict__meter">
+        <div class="meter"><div class="meter__fill" id="confFill"></div></div>
+        <p class="verdict__conf"><b id="confValue">—</b> <span id="confLabel">chắc chắn</span></p>
+      </div>
+
+      <div class="notice notice--warn" id="lowConfidence" role="status" hidden>
+        <span id="lowConfBody"></span>
+      </div>
+
+      <div class="verdict__tools">
+        <button type="button" class="button" id="resetBtn"></button>
+        <button type="button" class="button button--ghost" id="exportBtn"></button>
+      </div>
+
+      <div class="extras">
+        <details class="panel">
+          <summary id="probsTitle">Các khả năng khác</summary>
+          <div class="probs" id="probs"></div>
+        </details>
+        <details class="panel">
+          <summary id="techTitle">Thông tin kỹ thuật</summary>
+          <dl class="tech" id="tech"></dl>
+        </details>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="shell"><p id="footerDisclaimer"></p></div>
+</footer>
+
+<!-- Trợ lý AI: nút tròn nổi, chỉ hiện khi máy chủ có OPENROUTER_API_KEY -->
+<div class="assistant" id="assistant" hidden>
+  <section class="assistant__panel" id="chatPanel" role="dialog"
+           aria-labelledby="chatTitle" aria-describedby="chatNote" hidden>
+    <header class="assistant__head">
+      <h2 id="chatTitle">Hỏi kỹ sư AI</h2>
+      <button type="button" class="assistant__close" id="chatClose" aria-label="Đóng"></button>
+    </header>
+
+    <div class="chat__log" id="chatLog" aria-live="polite" aria-atomic="false"></div>
+
+    <div class="assistant__foot">
+      <div class="chat__suggest" id="chatSuggest"></div>
+      <form class="chat__form" id="chatForm">
+        <input type="text" id="chatInput" autocomplete="off"
+               placeholder="Hỏi thêm về cách xử lý…" maxlength="2000">
+        <button type="submit" id="chatSend" aria-label="Gửi"></button>
+      </form>
+      <p class="chat__note" id="chatNote"></p>
+    </div>
+  </section>
+
+  <button type="button" class="assistant__fab" id="chatFab"
+          aria-expanded="false" aria-controls="chatPanel" aria-label="Hỏi kỹ sư AI">
+    <span class="assistant__dot" id="chatDot" hidden></span>
+  </button>
+</div>
+
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

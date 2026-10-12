@@ -1,0 +1,54 @@
+# Triển khai công khai: nginx đứng trước, API không mở cổng ra ngoài.
+#
+# Cách dùng (chạy từ gốc dự án):
+#   docker compose -f deploy/docker-compose.prod.yml up -d --build
+#
+# Trước khi chạy, đặt PUBLIC_HOST và đặt chứng chỉ TLS vào deploy/certs/.
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: durian-leaf-diagnosis:latest
+    restart: unless-stopped
+    # Không publish cổng: chỉ nginx trong cùng mạng mới gọi được.
+    expose:
+      - "8000"
+    environment:
+      ENVIRONMENT: production
+      LOG_FORMAT: json
+      LOG_LEVEL: INFO
+      DEVICE: cpu
+      TORCH_NUM_THREADS: "1"
+      # Chỉ cho phép đúng tên miền của bạn.
+      CORS_ALLOW_ORIGINS: "https://${PUBLIC_HOST:?đặt PUBLIC_HOST trong .env}"
+      # Có đúng một lớp proxy (nginx) phía trước, nên tin 1 nấc X-Forwarded-For.
+      TRUSTED_PROXY_COUNT: "1"
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_REQUESTS: "30"
+      RATE_LIMIT_WINDOW_SECONDS: "60"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/readyz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          # CAFormer-S18 ở chế độ suy luận chiếm ~500MB; 2GB là mức an toàn.
+          memory: 2G
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}

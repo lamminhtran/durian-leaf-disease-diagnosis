@@ -1,0 +1,12 @@
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+ignore = [
+    "E501",  # độ dài dòng đã do formatter lo
+    "B008",  # Depends()/File() trong tham số mặc định là chuẩn của FastAPI
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E402"]  # test chèn sys.path trước khi import app
