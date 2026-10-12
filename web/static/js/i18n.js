@@ -16,6 +16,9 @@ export const STRINGS = {
     dropHint: "hoặc kéo thả ảnh vào đây",
     dropMeta: "JPEG · PNG · tối đa 10 MB",
 
+    scopeNote: "Hệ thống chỉ nhận dạng ảnh lá sầu riêng, với 5 trạng thái:",
+    scopeStates: "Đốm tảo · Rầy phấn tấn công · Cháy lá · Đốm lá Phomopsis · Lá khoẻ",
+
     analysing: "Đang phân tích…",
 
     severityNone: "Lá khoẻ",
@@ -82,6 +85,9 @@ export const STRINGS = {
     dropTitle: "Choose a leaf photo",
     dropHint: "or drag and drop it here",
     dropMeta: "JPEG · PNG · up to 10 MB",
+
+    scopeNote: "This tool only reads durian-leaf photos, across 5 states:",
+    scopeStates: "Algal leaf spot · Psyllid attack · Leaf blight · Phomopsis leaf spot · Healthy",
 
     analysing: "Analysing…",
 

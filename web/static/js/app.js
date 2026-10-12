@@ -91,6 +91,7 @@ function cacheElements() {
     "brandTitle", "langVi", "langEn", "themeToggle",
     "intro", "introTitle", "introBody",
     "dropzone", "fileInput", "dropIcon", "dropTitle", "dropHint", "dropMeta",
+    "scope", "scopeNote", "scopeStates",
     "stage", "notice", "progress", "progressTitle",
     "results", "plates", "plateHeatmap", "plateBox",
     "imgOriginal", "imgHeatmap", "imgBoxed", "bboxOverlay", "bboxLabel",
@@ -136,6 +137,8 @@ function applyLanguage() {
   setText(el.dropTitle, s.dropTitle);
   setText(el.dropHint, s.dropHint);
   setText(el.dropMeta, s.dropMeta);
+  setText(el.scopeNote, s.scopeNote);
+  setText(el.scopeStates, s.scopeStates);
   setText(el.progressTitle, s.analysing);
 
   setText(el.capOriginal, s.capOriginal);
@@ -267,6 +270,7 @@ async function handleFile(file) {
   state.busy = true;
   el.intro.hidden = true;
   el.dropzone.hidden = true;
+  el.scope.hidden = true;
   el.results.hidden = true;
   el.progress.hidden = false;
 
@@ -283,6 +287,7 @@ async function handleFile(file) {
   } catch (err) {
     el.intro.hidden = false;
     el.dropzone.hidden = false;
+    el.scope.hidden = false;
     showNotice("error", err.message);
   } finally {
     state.busy = false;
@@ -469,6 +474,7 @@ function reset() {
   el.results.hidden = true;
   el.intro.hidden = false;
   el.dropzone.hidden = false;
+  el.scope.hidden = false;
   clearNotice();
   el.fileInput.value = "";
   closeChat({ restoreFocus: false });
