@@ -56,8 +56,9 @@ WORKDIR /app
 COPY --chown=app:app app/ ./app/
 COPY --chown=app:app web/ ./web/
 
-# Trọng số đang phục vụ và các tệp số liệu hiển thị trên giao diện.
-COPY --chown=app:app models/caformer_s18_best.pth ./models/
+# Cả hai trọng số: giáo viên (90MB) và bản chưng cất (8MB). Chép cả hai để đổi
+# mô hình chỉ cần đổi biến môi trường, không phải build lại image.
+COPY --chown=app:app models/ ./models/
 COPY --chown=app:app results/ ./results/
 
 USER app
