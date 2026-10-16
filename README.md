@@ -149,17 +149,6 @@ lời các câu hỏi tiếp theo.
 
 ![Trợ lý AI diễn giải kết quả](docs/images/ui-chat.jpg)
 
-<table>
-<tr>
-<td width="50%"><img src="docs/images/export-sample.jpg" alt="Phiếu kết quả PNG"></td>
-<td width="50%"><img src="docs/images/ui-dark.jpg" alt="Chế độ tối"></td>
-</tr>
-<tr>
-<td align="center"><i>Phiếu kết quả tải về</i></td>
-<td align="center"><i>Chế độ tối</i></td>
-</tr>
-</table>
-
 | Lớp | Thành phần |
 |---|---|
 | Mô hình | PyTorch, timm |
