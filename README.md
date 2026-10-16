@@ -251,7 +251,7 @@ hiểu được và trả lời câu hỏi tiếp theo. Chữ hiện dần theo 
 
 ![Trợ lý AI trả lời](docs/images/ui-chat.jpg)
 
-## Xuất phiếu kết quả, chế độ tối, điện thoại
+## Xuất phiếu kết quả, chế độ tối
 
 <table>
 <tr>
@@ -263,11 +263,6 @@ hiểu được và trả lời câu hỏi tiếp theo. Chữ hiện dần theo 
 <td align="center"><i>Chế độ tối</i></td>
 </tr>
 </table>
-
-<p align="center">
-  <img src="docs/images/ui-mobile.jpg" width="320" alt="Giao diện trên điện thoại">
-  <br><i>Giao diện trên điện thoại</i>
-</p>
 
 ## Công nghệ
 
