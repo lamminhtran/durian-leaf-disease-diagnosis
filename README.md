@@ -20,6 +20,10 @@ nó bằng Grad-CAM, chưng cất xuống một mô hình nhẹ hơn 11 lần đ
 </tr>
 </table>
 
+> 📓 **Toàn bộ quá trình huấn luyện, chưng cất và giải thích mô hình chạy trên Kaggle.**
+> Mọi biểu đồ trong README này là **kết quả thật xuất trực tiếp từ notebook đó**, không vẽ lại:
+> **[→ Xem notebook đầy đủ trên Kaggle](https://www.kaggle.com/code/lmminhtrn/training-dldd-24april26)**
+
 ## Quy trình tổng thể
 
 ```
@@ -104,14 +108,18 @@ Mỗi mô hình 30 epoch.
 | Swin-Tiny | 27.9 | 97.75% | 0.9762 | 10.9 | 23,9 phút |
 | ViT-Small | 21.9 | 96.74% | 0.9664 | 5.7 | 18,5 phút |
 
-![So sánh macro F1 giữa 5 mô hình](docs/images/model-comparison.png)
+![So sánh F1-score giữa 5 mô hình](docs/images/compare-f1.png)
 
 Chọn **CAFormer-S18**: cao nhất về độ chính xác, đồng thời chỉ tốn 10ms/ảnh —
 nhanh gấp 2,5 lần MaxViT vốn có kết quả tương đương.
 
-![Đường accuracy và loss của CAFormer-S18 qua 30 epoch](docs/images/training-curve.png)
+![Đường accuracy và loss của CAFormer-S18 qua 30 epoch](docs/images/train-caformer.png)
 
-![Precision, recall và F1 theo từng lớp](docs/images/per-class.png)
+<p align="center"><i>Đường học của CAFormer-S18: val accuracy chạm 99.77%, val loss thấp nhất 0.0112.</i></p>
+
+Ma trận nhầm lẫn trên 890 ảnh test cho thấy mô hình sai ở đâu:
+
+![Ma trận nhầm lẫn của CAFormer-S18 trên tập test](docs/images/confusion-caformer.png)
 
 Lớp khó nhất là `PHOMOPSIS_LEAF_SPOT` (recall 96.02%) — hay bị nhầm sang đốm tảo
 và rầy phấn, hợp lý vì cả ba đều biểu hiện bằng đốm nhỏ rải rác trên phiến lá.
@@ -131,9 +139,18 @@ ngưỡng 120/255, lấy vùng liên thông lớn nhất, rồi vẽ khung bao. 
 huấn luyện bằng **nhãn mức ảnh**, chưa bao giờ được dạy vị trí bệnh — khung bao
 này là do nó tự suy ra.
 
-Cả hai đều **tự hiện thực bằng NumPy/PyTorch thuần**, không dùng `opencv-python`
-hay `pytorch-grad-cam`, và được đối chiếu lại với chính hai thư viện đó để chắc
-chắn khớp (xem [mục 7](#7-kiểm-chứng)).
+![Ảnh gốc, bản đồ nhiệt Grad-CAM và khung bao WSOL](docs/images/gradcam-wsol.png)
+
+<p align="center"><i>Trái: ảnh gốc · Giữa: Grad-CAM chỉ vùng mô hình chú ý · Phải: khung bao WSOL tự suy ra quanh vết bệnh.</i></p>
+
+Kiểm chứng thêm bằng **SHAP** — phân rã đóng góp của từng vùng ảnh vào điểm số
+của mỗi lớp. Vùng đỏ đẩy mô hình về phía lớp đó, vùng xanh kéo ngược lại:
+
+![Phân tích SHAP theo từng lớp bệnh](docs/images/shap.png)
+
+Cả Grad-CAM và WSOL đều **tự hiện thực bằng NumPy/PyTorch thuần**, không dùng
+`opencv-python` hay `pytorch-grad-cam`, và được đối chiếu lại với chính hai thư
+viện đó để chắc chắn khớp (xem [mục 7](#7-kiểm-chứng)).
 
 ---
 
@@ -159,7 +176,28 @@ Biểu đồ cho thấy rõ cơ chế: pha 1 soft loss bằng 0 (chưa dùng gi�
 
 ## Kết quả
 
-![Đánh đổi độ chính xác và kích thước](docs/images/kd-tradeoff.png)
+So sánh ba hướng nén — giữ nguyên CAFormer, cắt tỉa 30% + lượng tử hoá INT8, và
+chưng cất sang MobileNetV3. Chưng cất cho mô hình **nhỏ nhất và nhanh nhất** mà
+độ chính xác chỉ kém baseline chưa tới 2 điểm:
+
+<table>
+<tr>
+<td width="33%"><img src="docs/images/kd-accuracy.png" alt="Độ chính xác trên tập test"></td>
+<td width="33%"><img src="docs/images/kd-size.png" alt="Dung lượng mô hình (MB)"></td>
+<td width="33%"><img src="docs/images/kd-speed.png" alt="Thời gian suy luận trên CPU (ms)"></td>
+</tr>
+<tr>
+<td align="center"><i>Độ chính xác (%)</i></td>
+<td align="center"><i>Dung lượng (MB)</i></td>
+<td align="center"><i>Tốc độ CPU (ms)</i></td>
+</tr>
+</table>
+
+Đáng chú ý: cắt tỉa + INT8 tuy giảm được dung lượng nhưng **suy luận lại chậm hơn**
+baseline (169 ms so với 86 ms) vì CPU phải giải nén ngược INT8 — còn chưng cất
+vừa nhỏ (7.93 MB) vừa nhanh nhất (11.89 ms). Chi tiết quá trình nén:
+
+![Quá trình nén kích thước mô hình và tỉ lệ thưa thớt tham số](docs/images/compression-pipeline.png)
 
 | Mô hình | Tham số | Độ chính xác | Macro F1 | Thời gian train |
 |---|---|---|---|---|
@@ -247,7 +285,7 @@ hiểu được và trả lời câu hỏi tiếp theo. Chữ hiện dần theo 
 
 # 6. Triển khai
 
-**Bản demo công khai chạy bằng mô hình chưng cất MobileNetV3-Small**, không phải
+**Bản triển khai chạy bằng mô hình chưng cất MobileNetV3-Small**, không phải
 giáo viên. Lý do nằm ở số đo trong container giới hạn 512MB — mức RAM của hầu hết
 gói hosting miễn phí:
 
@@ -274,21 +312,6 @@ METRICS_PREFIX=mobilenetv3_small_kd
 Quên `METRICS_PREFIX` là lỗi âm thầm — dịch vụ vẫn chạy nhưng giao diện khoe số
 liệu của mô hình kia. Ứng dụng tự kiểm tra chéo số tham số lúc khởi động và cảnh
 báo nếu lệch.
-
-## Bản demo công khai
-
-Triển khai trên **Render** (gói free) bằng [`render.yaml`](render.yaml). Vì máy
-chỉ có 0.1 CPU, bản demo dùng mô hình chưng cất:
-
-| | Đo trong container 0.1 CPU / 512MB |
-|---|---|
-| Nạp mô hình lúc khởi động | 108 s |
-| Mỗi lần chẩn đoán | 4,7 s |
-| RAM | 322 MB / 512 MB |
-
-Gói free ngủ sau 15 phút không có lưu lượng; một workflow GitHub Actions
-([`keep-warm.yml`](.github/workflows/keep-warm.yml)) ping mỗi 10 phút để tránh
-người truy cập đầu tiên phải chờ khởi động lại.
 
 ## Chạy bằng Docker
 

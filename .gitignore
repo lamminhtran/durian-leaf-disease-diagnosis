@@ -30,3 +30,7 @@ __pycache__/
 # Log
 logs/
 *.log
+
+# Notebook Kaggle (không commit, chỉ dùng để trích biểu đồ)
+training-dldd-24april26.ipynb
+*.ipynb
